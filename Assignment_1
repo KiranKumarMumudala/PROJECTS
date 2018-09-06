@@ -1,0 +1,126 @@
+#Importing libraries
+import pandas as pd
+import numpy as np
+import random as rnd
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+
+#Reading training dataset. 
+train_df= pd.read_csv('C:/Users/Kiran/Downloads/TITANIC/train.csv') 
+
+test_df= pd.read_csv('C:/Users/Kiran/Downloads/TITANIC/test.csv') #Reading test dataset
+
+combine = [train_df, test_df] #Combining training and test dataset
+
+#ANSWER 1
+print(train_df.columns.values)  # Checking the features available in the dataset
+
+train_df.head() #preview of the dataset
+train_df.info() #Checking the number of not null values
+#Checking the data types in the dataset
+test_df.info()
+
+#ANSWER 7
+train_df.describe()  #properties of numerical features
+
+#ANSWER 8
+train_df.describe(include=['O'])
+
+#ANSWER 9
+train_df[['Pclass', 'Survived']].groupby(['Pclass'], as_index=False).mean().sort_values(by='Survived', ascending=False)
+
+#ANSWER 10
+train_df[["Sex", "Survived"]].groupby(['Sex'], as_index=False).mean().sort_values(by='Survived', ascending=False)
+
+#ANSWER 11
+plot = sns.FacetGrid(train_df, col='Survived')
+plot.map(plt.hist, 'Age', bins=20)
+
+#ANSWER 12
+plot2 = sns.FacetGrid(train_df, col='Survived', row='Pclass', size=4, aspect=2)
+plot2.map(plt.hist, 'Age', alpha=1, bins=20)
+plot2.add_legend();
+
+#ANSWER 13
+grid = sns.FacetGrid(train_df, row='Embarked', col='Survived', size=2, aspect=2)
+grid.map(sns.barplot, 'Sex', 'Fare', alpha=1, ci=None)
+grid.add_legend()
+
+print("Before", train_df.shape, test_df.shape, combine[0].shape, combine[1].shape)
+
+train_df = train_df.drop(['Ticket', 'Cabin'], axis=1)
+test_df = test_df.drop(['Ticket', 'Cabin'], axis=1)
+combine = [train_df, test_df]
+
+"After", train_df.shape, test_df.shape, combine[0].shape, combine[1].shape
+
+train_df = train_df.drop(['Name', 'PassengerId'], axis=1)
+test_df = test_df.drop(['Name'], axis=1)
+combine = [train_df, test_df]
+train_df.shape, test_df.shape
+
+# ANSWER 16
+
+for dataset in combine:
+    dataset['Sex'] = dataset['Sex'].map( {'female': 1, 'male': 0} ).astype(int)
+
+train_df.head()
+
+# ANSWER 17
+
+guess_ages = np.zeros((2,3))
+guess_ages
+
+for dataset in combine:
+    for i in range(0, 2):
+        for j in range(0, 3):
+            guess_df = dataset[(dataset['Sex'] == i) & \
+                                  (dataset['Pclass'] == j+1)]['Age'].dropna()
+
+            # age_mean = guess_df.mean()
+            # age_std = guess_df.std()
+            # age_guess = rnd.uniform(age_mean - age_std, age_mean + age_std)
+
+            age_guess = guess_df.median()
+
+            # Convert random age float to nearest .5 age
+            guess_ages[i,j] = int( age_guess/0.5 + 0.5 ) * 0.5
+            
+    for i in range(0, 2):
+        for j in range(0, 3):
+            dataset.loc[ (dataset.Age.isnull()) & (dataset.Sex == i) & (dataset.Pclass == j+1),\
+                    'Age'] = guess_ages[i,j]
+
+    dataset['Age'] = dataset['Age'].astype(int)
+
+train_df
+
+# ANSWER 18
+
+freq_port = train_df.Embarked.dropna().mode()[0]
+freq_port
+
+# ANSWER 19
+
+test_df['Fare'].fillna(test_df['Fare'].dropna().median(), inplace=True)
+test_df.head()
+
+# ANSWER 20
+
+train_df['FareBand'] = pd.qcut(train_df['Fare'], 4)
+train_df[['FareBand', 'Survived']].groupby(['FareBand'], as_index=False).mean().sort_values(by='FareBand', ascending=True)
+
+for dataset in combine:
+    dataset.loc[ dataset['Fare'] <= 7.91, 'Fare'] = 0
+    dataset.loc[(dataset['Fare'] > 7.91) & (dataset['Fare'] <= 14.454), 'Fare'] = 1
+    dataset.loc[(dataset['Fare'] > 14.454) & (dataset['Fare'] <= 31), 'Fare']   = 2
+    dataset.loc[ dataset['Fare'] > 31, 'Fare'] = 3
+    dataset['Fare'] = dataset['Fare'].astype(int)
+
+
+train_df = train_df.drop(['FareBand'], axis=1)
+combine = [train_df, test_df]
+    
+train_df.head(10)
